@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+     <string-array name="menus">
+         <item>置顶</item>
+         <item>删除</item>
+         <item>修改</item>
+       </string-array> 
+       
+      <string-array name="menus_multiSelect">
+         <item>输入昵称</item>
+       </string-array> 
+</resources>
