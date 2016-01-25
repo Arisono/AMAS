@@ -8,5 +8,6 @@
        
       <string-array name="menus_multiSelect">
          <item>输入昵称</item>
+         <item>选中号码</item>
        </string-array> 
 </resources>

@@ -6,11 +6,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.ASMS.activity.CustomTempletActivity.SimpleAdapter.ViewModel;
+import com.ASMS.entity.Contacts;
 import com.ASMS.util.CommonUtil;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.ThemeSingleton;
 import com.afollestad.materialdialogs.internal.MDTintHelper;
+import com.alibaba.fastjson.JSON;
 
 import android.app.Activity;
 import android.app.Service;
@@ -36,6 +38,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,6 +61,12 @@ public class CustomTempletActivity extends Activity {
 	TextView tv_back;
 	@Bind(R.id.tv_title)
 	TextView tv_title; 
+	@Bind(R.id.ll_bottom_add)
+	LinearLayout  ll_bottom_add;
+	List<Contacts> mContacts;
+	
+	
+	String flag=null;
 	
 	Context ct;
 	SimpleAdapter adapter;
@@ -72,7 +81,6 @@ public class CustomTempletActivity extends Activity {
 		tv_title.setText("添加常用语");
 		loadData();
 		initData();
-		
 
 	
 	}
@@ -88,19 +96,49 @@ public class CustomTempletActivity extends Activity {
 	}
 	
 	private void loadData() {
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("dsafjds dsafhdsajfdsajfdsa年份空间的空间费的撒放大镜房顶上空间划分打算控件发jdsajfjsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
-       templates.add("adfdsafdsafdsafadsfdsafsadfdsafdsa");
+	   Intent intent=getIntent();
+	  
+	   if(intent!=null){//标志位检查
+		   flag=intent.getStringExtra("flag");
+	   }
+	   if(TextUtils.isEmpty(flag)) {
+		   String jsonTemplates= CommonUtil.getSharedPreferences(ct, "templates");
+		   if (!TextUtils.isEmpty(jsonTemplates)) {
+			templates=JSON.parseArray(jsonTemplates,String.class);
+		   }else{
+		   ll_bottom_add.setVisibility(View.VISIBLE);
+		   templates.add("你好,很高兴认识你！");
+	       templates.add("你好,@昵称,代表可以替换的字符串！");
+	       saveTemplates(templates);
+		  }
+	   }else{
+		ll_bottom_add.setVisibility(View.GONE);
+		tv_title.setText("短信模板预览");
+		templates.clear();
+	    mContacts=intent.getParcelableArrayListExtra("Contacts");
+	    String template=intent.getStringExtra("template");
+	    for (int i = 0; i < mContacts.size(); i++) {
+	    	Contacts eContacts=mContacts.get(i);
+			String itemStr=template;
+			String nickName=eContacts.getNickname();
+			String name=eContacts.getName();
+//			if (eContacts.ischecked) {
+				if (!TextUtils.isEmpty(nickName)) {
+					itemStr=itemStr.replace("@昵称", nickName);
+				}else{
+					itemStr=itemStr.replace("@昵称", name);
+				}
+				templates.add(itemStr);
+//			}
+		
+		}
+	    
+	  }
+	}
+
+	private void saveTemplates(List<String> templates) {
+		String json= JSON.toJSONString(templates);
+	    CommonUtil.setSharedPreferences(this, "templates", json);
 	}
 	
 	@OnClick(R.id.iv_add) void iv_add() {
@@ -134,6 +172,7 @@ public class CustomTempletActivity extends Activity {
 							break;
 						case 1:
 							templates.remove(position);
+							saveTemplates(templates);
 							adapter.notifyDataSetChanged();
 							break;
 						case 2:
@@ -188,7 +227,16 @@ public class CustomTempletActivity extends Activity {
 			}
 			
 			model.template_text.setText(data.get(position));
-			insertSpanForEditView(model.template_text, model.template_text.getText().toString());
+			if (!TextUtils.isEmpty(flag)) {
+				insertSpanForEditView(
+						model.template_text,
+						model.template_text.getText().toString(),
+						!TextUtils.isEmpty(mContacts.get(position).getNickname())?
+						mContacts.get(position).getNickname():mContacts.get(position).getName()
+						,R.color.red_one);
+			}else{
+			insertSpanForEditView(model.template_text, model.template_text.getText().toString(),"@昵称");
+			}
 			return view;
 		}
 		
@@ -221,9 +269,11 @@ public class CustomTempletActivity extends Activity {
 						if (isUpdate) {
 							templates.remove(position);
 							templates.add(position,content.getText().toString());
+							saveTemplates(templates);
 							adapter.notifyDataSetChanged();
 						}else{
 						templates.add(content.getText().toString());
+						saveTemplates(templates);
 						adapter.notifyDataSetChanged();
 						}
 						dialog.dismiss();
@@ -249,7 +299,7 @@ public class CustomTempletActivity extends Activity {
 						String input=content.getText().toString();
 						Log.i("input", input);
 						int fend=index+text.length();
-					    insertSpanForEditView(content,input);
+					    insertSpanForEditView(content,input,"@昵称");
 					    content.setSelection(fend);
 					}
 
@@ -265,7 +315,7 @@ public class CustomTempletActivity extends Activity {
 			isUpdate=false;
 		}
 		
-		insertSpanForEditView(content,content.getText().toString());
+		insertSpanForEditView(content,content.getText().toString(),"@昵称");
 		
 		positiveAction = dialog.getActionButton(DialogAction.POSITIVE);
 		neutralAction=dialog.getActionButton(DialogAction.NEUTRAL);
@@ -302,9 +352,31 @@ public class CustomTempletActivity extends Activity {
 	}
 	
 	
-	private void insertSpanForEditView(TextView view, String input) {
+	private void insertSpanForEditView(
+			TextView view, 
+			String input,
+			String match,
+			int color) {
 		SpannableStringBuilder style=new SpannableStringBuilder(input); 
-	    Pattern highlight = Pattern.compile("@昵称");
+	    Pattern highlight = Pattern.compile(match);
+	    Matcher m = highlight.matcher(style.toString());
+	    while (m.find()) {
+            style.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), m.start(), m.end(), 
+                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+            style.setSpan(new ForegroundColorSpan(color), m.start(), m.end(), 
+                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+//            style.setSpan(new StrikethroughSpan(), m.start(), m.end(), 
+//                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+		view.setText(style);
+	}
+	
+	private void insertSpanForEditView(
+			TextView view, 
+			String input,
+			String match) {
+		SpannableStringBuilder style=new SpannableStringBuilder(input); 
+	    Pattern highlight = Pattern.compile(match);
 	    Matcher m = highlight.matcher(style.toString());
 	    while (m.find()) {
             style.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), m.start(), m.end(), 

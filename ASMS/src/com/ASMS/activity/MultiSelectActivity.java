@@ -1,6 +1,7 @@
 package com.ASMS.activity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.ASMS.activity.MultiSelectActivity.SimpleAdapter.ViewModel;
@@ -21,26 +22,35 @@ import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.Vibrator;
 import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Nickname;
+import android.provider.ContactsContract.Data;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import butterknife.OnItemClick;
 import butterknife.OnItemLongClick;
 
@@ -58,7 +68,22 @@ public class MultiSelectActivity extends Activity {
 	Context ct;
 	SimpleAdapter adapter;
 	List<Contacts> mContacts;
-	
+	private int checkNum; // 记录选中的条目数量
+	Handler mhandle=new Handler(){
+		public void handleMessage(android.os.Message msg) {
+		  switch (msg.what) {
+		   case 1:
+			    mContacts=getContacts();
+				adapter=new SimpleAdapter(ct, mContacts);
+				lv_multiselect.setAdapter(adapter);
+				lv_multiselect.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+			break;
+
+		default:
+			break;
+		}	
+		};
+	};
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -66,7 +91,7 @@ public class MultiSelectActivity extends Activity {
 		ButterKnife.bind(this);
 		ct=this;
 		initView();
-		initData();
+		//initData();
 	}
 	
 	private void initView() {
@@ -76,33 +101,103 @@ public class MultiSelectActivity extends Activity {
 	}
 	
 	private void initData() {
-		mContacts=getContacts();
-		adapter=new SimpleAdapter(this, mContacts);
-		lv_multiselect.setAdapter(adapter);
+		Message message=new Message();
+		message.what=1;
+		mhandle.sendMessageDelayed(message, 1000);
+	/*	runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				mContacts=getContacts();
+				adapter=new SimpleAdapter(ct, mContacts);
+				lv_multiselect.setAdapter(adapter);
+				lv_multiselect.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+			}
+		});*/
+	}
+	
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		initData();
+	}
+	
+	
+	@OnClick(R.id.tv_right) void bt_commit(){
+		CommonUtil.showToast(ct, "选中："+checkNum+"");
+		Intent intent=new Intent();
+		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
+		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
+		
+	}
+	
+	@OnClick(R.id.tv_back) void bt_back(){
+		CommonUtil.showToast(ct, "选中："+checkNum+"");
+		Intent intent=new Intent();
+		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
+		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
+		
+	}
+	
+	
+	@Override
+	public void onBackPressed() {
+		//super.onBackPressed();
+		Intent intent=new Intent();
+		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
+		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
 	}
 	
 	@OnItemClick(R.id.lv_multiselect) void item_Multi_onClick(
 			AdapterView<?> parent, View view, final int position){
 		final ViewModel model=(ViewModel) view.getTag();
-//		 Toast.makeText(ct, "点击事件！1", Toast.LENGTH_LONG).show();
-			List<String> phones=	mContacts.get(position).getPhones(); 
-			if (phones.size()==1) {
-				return;
-			}
-		    final String[] phone_items = (String[])phones.toArray(new String[phones.size()]);
-			MaterialDialog dialog=new MaterialDialog.Builder(ct) 
-					.title("选择号码")
-					.items(phone_items)
-					.itemsCallback(new MaterialDialog.ListCallback() {
-						
-						@Override
-						public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
+	    String phone =model.phone.getText().toString();
+		List<String> phones=mContacts.get(position).getPhones(); 
+		 if (model.selected.isChecked() == true) {
+	            mContacts.get(position).setIschecked(false);
+	            model.selected.setChecked(false);
+	            checkNum--;
+	            CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
+	            return;
+	        }
+		if (phones.size()==1) {
+		        	if(model.selected.isChecked() == false) {
+		           // adapter.getIsSelected().put(position, true);
+		            mContacts.get(position).setIschecked(true);
+		            model.selected.setChecked(true);
+		            checkNum++;
+		        }
+			 mContacts.get(position).setPhone(phone);
+			 CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
+			return;
+		}
+	    final String[] phone_items = (String[])phones.toArray(new String[phones.size()]);
+	    MaterialDialog dialog=new MaterialDialog.Builder(ct) 
+				.title("选择号码")
+				.items(phone_items)
+				.itemsCallback(new MaterialDialog.ListCallback() {
+					
+					@Override
+					public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
 						 String phone_selected = phone_items[which];
 						 model.phone.setText(phone_selected);
-						 dialog.dismiss();
-						}
-					}).build();
-			dialog.show();	
+//						if (model.selected.isChecked() == true) {
+//							 mContacts.get(position).setPhone(phone_selected);
+//							 model.selected.setChecked(false);
+//							 checkNum--;
+//						 }else
+							 if(model.selected.isChecked() == false) {
+							 mContacts.get(position).setPhone(phone_selected);
+							 model.selected.setChecked(true);
+							 mContacts.get(position).setIschecked(true);
+							 checkNum++;
+						 }
+					 CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
+					 dialog.dismiss();
+					}
+				}).build();
+		dialog.show();	
+		 
 	}
 	
 	@OnItemLongClick(R.id.lv_multiselect) boolean item_onLongClick(AdapterView<?> parent, View view, final int position, long id){
@@ -118,7 +213,27 @@ public class MultiSelectActivity extends Activity {
 						switch (which) {
 						case 0:
 							 Log.i("ContactId","mId:"+mContacts.get(position).getId()+"");
-							 showDialogsInput(model.name.getText().toString(),mContacts.get(position).getId());
+							 showDialogsInput(model,model.name.getText().toString(),mContacts.get(position));
+							break;
+						case 1:
+							List<String> phones=	mContacts.get(position).getPhones(); 
+							if (phones.size()==1) {
+								return;
+							}
+						    final String[] phone_items = (String[])phones.toArray(new String[phones.size()]);
+							 dialog=new MaterialDialog.Builder(ct) 
+									.title("选择号码")
+									.items(phone_items)
+									.itemsCallback(new MaterialDialog.ListCallback() {
+										
+										@Override
+										public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
+										 String phone_selected = phone_items[which];
+										 model.phone.setText(phone_selected);
+										 dialog.dismiss();
+										}
+									}).build();
+							dialog.show();	
 							break;
 						default:
 							break;
@@ -146,7 +261,7 @@ public class MultiSelectActivity extends Activity {
 		   contact.setId(id);
 		   //根据获取到的ID查询data表中的数据  
 		   uri = Uri.parse("content://com.android.contacts/contacts/" + id + "/data");  
-		   Cursor dataCursor = resolver.query(uri, new String[] { "data1", "mimetype" }, null, null, null);  
+		   Cursor dataCursor = resolver.query(uri, new String[] { "data1", "mimetype" ,"raw_contact_id"}, null, null, null);  
 		   StringBuilder sb = new StringBuilder();  
 		   sb.append("id=" + id);  
 		   //查询联系人表中的  
@@ -154,9 +269,12 @@ public class MultiSelectActivity extends Activity {
 		  // getContactsPhones(idCursor, contact, idCursor.getString(id));
 		   
 		   while (dataCursor.moveToNext()) { 
-			  
+			   Log.i("rawid","-------------\n");
 		       String data = dataCursor.getString(0);  
-		       String type = dataCursor.getString(1);  
+		       String type = dataCursor.getString(1); 
+		       int rawid=dataCursor.getInt(2);
+		       contact.setRawid(rawid);
+		       Log.i("rawid","某联系人下："+rawid+"");
 		       if ("vnd.android.cursor.item/name".equals(type))  
 		          // sb.append(", name=" + data);  
 		            contact.setName(data);
@@ -166,8 +284,11 @@ public class MultiSelectActivity extends Activity {
 		       else if ("vnd.android.cursor.item/email_v2".equals(type))  
 		           sb.append(", email=" + data);
 		       else if("vnd.android.cursor.item/nickname".equals(type))
-		    	   //sb.append(",nickname="+data);
+		       {
 		    	   contact.setNickname(data);
+		    	   Log.i("rawid", data+"");
+		    	   Log.i("rawid", rawid+"");
+		       }
 		      
 		   }  
 		   contacts.add(contact);
@@ -257,14 +378,21 @@ public class MultiSelectActivity extends Activity {
 	
 	public class SimpleAdapter extends BaseAdapter{
 		private List<Contacts> data;
-		
 		private LayoutInflater inflater;
-		
+		// 用来控制CheckBox的选中状况
+	    private HashMap<Integer,Boolean> isSelected;
 		public SimpleAdapter(Context ct,List<Contacts> data) {
 			this.inflater=LayoutInflater.from(ct);
 			this.data=data;
+			isSelected = new HashMap<Integer, Boolean>();
+		    initSelectState(); // 初始化数据
 		}
-
+		 // 初始化isSelected的数据
+	    public void initSelectState(){
+	        for(int i=0; i<data.size();i++) {
+	            getIsSelected().put(i,false);
+	        }
+	    }
 		@Override
 		public int getCount() {
 			return data.size();
@@ -279,9 +407,17 @@ public class MultiSelectActivity extends Activity {
 		public long getItemId(int position) {
 			return position;
 		}
+		
+		public HashMap<Integer, Boolean> getIsSelected() {
+			return isSelected;
+		}
+
+		public void setIsSelected(HashMap<Integer, Boolean> isSelected) {
+			this.isSelected = isSelected;
+		}
 
 		@Override
-		public View getView(int position, View view, ViewGroup parent) {
+		public View getView(final int position, View view, ViewGroup parent) {
 			ViewModel model=null;
 			if (view==null) {
 				view=inflater.inflate(R.layout.item_friends_multiselect, parent,false);
@@ -300,6 +436,8 @@ public class MultiSelectActivity extends Activity {
 			model.name.setText(data.get(position).getName());
 			model.nickname.setText(data.get(position).getNickname());
 			model.phoneAddress.setText(data.get(position).getPhoneAddress());
+			model.selected.setChecked(data.get(position).ischecked);
+			
 			if (!data.get(position).getPhones().isEmpty()) {
 				model.phoneCount.setText(data.get(position).getPhones().get(0));
 				model.phone.setText(data.get(position).getPhones().get(0));
@@ -308,7 +446,7 @@ public class MultiSelectActivity extends Activity {
 			}else{
 				model.phone.setText(data.get(position).getPhone());
 			}
-			
+			//model.selected.setOnCheckedChangeListener(new MyCheckBoxChangedListener(position));
 			return view;
 		}
 		
@@ -327,6 +465,13 @@ public class MultiSelectActivity extends Activity {
 	final String COLUMN_MIMETYPE =   
             ContactsContract.Data.MIMETYPE; 
 	
+	
+	
+	
+	/**
+	  * @author Administrator
+	  * @功能:更新昵称
+	  */
 	public void updateContactNickName(String ContactId,String newNickName){
 		 ArrayList<ContentProviderOperation> ops =  new ArrayList<ContentProviderOperation>();
 		 ops.add(ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
@@ -338,10 +483,27 @@ public class MultiSelectActivity extends Activity {
 		 try {
 			getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (OperationApplicationException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}      
+	}
+	
+	public void insertContactNickName(String contactId,String newNickName){
+		 ArrayList<ContentProviderOperation> ops =  new ArrayList<ContentProviderOperation>();
+		 ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
+		          .withValue(Data.RAW_CONTACT_ID, contactId)
+		          .withValue(Data.MIMETYPE, Nickname.CONTENT_ITEM_TYPE)
+		          .withValue(Nickname.NAME, newNickName)
+		          .withValue(Nickname.TYPE, Nickname.TYPE_CUSTOM)
+		          .withValue(Nickname.LABEL, "AMASIN")
+		          .build());
+
+		 try {
+			getContentResolver().applyBatch(ContactsContract.AUTHORITY, ops);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (OperationApplicationException e) {
 			e.printStackTrace();
 		}      
 	}
@@ -354,7 +516,7 @@ public class MultiSelectActivity extends Activity {
 	  * @author Administrator
 	  * @功能:展示输入模板的dialog
 	  */
-	public void showDialogsInput(final String name,final int ContactId){
+	public String showDialogsInput(final ViewModel model,final String name,final Contacts contacts){
 		MaterialDialog dialog = new MaterialDialog.Builder(ct).title("输入昵称")
 				.customView(R.layout.dialog_templet_input, true)
 				.positiveText("保存").negativeText(android.R.string.cancel)
@@ -365,7 +527,12 @@ public class MultiSelectActivity extends Activity {
 					public void onPositive(MaterialDialog dialog) {
 						CommonUtil.showToast(ct, content.getText().toString());
 						//getContactID(name);
-						updateContactNickName(new String().valueOf(ContactId), content.getText().toString());
+						if (!TextUtils.isEmpty(model.nickname.getText().toString())) {
+							updateContactNickName(String.valueOf(contacts.getId()), content.getText().toString());
+						}else{
+							insertContactNickName(String.valueOf(contacts.getRawid()), content.getText().toString());
+						}
+						model.nickname.setText(content.getText().toString());
 						dialog.dismiss();
 					}
 					
@@ -406,6 +573,8 @@ public class MultiSelectActivity extends Activity {
         	positiveAction.setEnabled(false); // disabled by default
 		}
         dialog.show();
+        
+        return content.getText().toString();
 	}
 	
 	
