@@ -14,10 +14,10 @@ public final class R {
 		public static final int stackFromEnd = 0x7f01003d;
 	}
 	public static final class dimen {
-		public static final int item_touch_helper_max_drag_scroll_per_frame = 0x7f050003;
+		public static final int item_touch_helper_max_drag_scroll_per_frame = 0x7f070003;
 	}
 	public static final class id {
-		public static final int item_touch_helper_previous_elevation = 0x7f060001;
+		public static final int item_touch_helper_previous_elevation = 0x7f080001;
 	}
 	public static final class styleable {
 		public static final int[] RecyclerView = { 0x010100c4, 0x7f01003a, 0x7f01003b, 0x7f01003c, 0x7f01003d };

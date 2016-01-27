@@ -3,8 +3,12 @@ package com.ASMS.activity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ASMS.app.AppApplication;
 import com.ASMS.entity.Contacts;
 import com.ASMS.util.CommonUtil;
+import com.ASMS.util.DoubleClickExitHelper;
+import com.baidu.autoupdatesdk.BDAutoUpdateSDK;
+import com.baidu.autoupdatesdk.UICheckUpdateCallback;
 import com.github.clans.fab.FloatingActionButton;
 
 import android.app.Activity;
@@ -21,6 +25,7 @@ import android.os.Parcelable;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.animation.AnimationUtils;
@@ -30,10 +35,7 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-/**
-  * @author Administrator
-  * @¹¦ÄÜ:¶ÌĞÅÈº·¢½çÃæ
-  */
+
 public class MainActivity extends Activity {
 
 	@Bind(R.id.bt_template) ImageButton bt_template;
@@ -47,12 +49,20 @@ public class MainActivity extends Activity {
 	@Bind(R.id.et_header_content) EditText ed_content;
 	
 	List<Contacts> mContacts=new ArrayList<Contacts>();
+	private DoubleClickExitHelper mDoubleClickExitHelper;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		AppApplication.getInstance().addActivity(this);
 		ButterKnife.bind(this);
+		initView();
+		
+	}
+
+	private void initView() {
+	    mDoubleClickExitHelper = new DoubleClickExitHelper(this);
 		fb_scan.hide(false);
 	     new Handler().postDelayed(new Runnable() {
 	            @Override
@@ -62,7 +72,26 @@ public class MainActivity extends Activity {
 	            	fb_scan.setHideAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.hide_to_bottom));
 	            }
 	     }, 800);
-		
+	     
+	     Intent intent=getIntent();
+	     if (intent!=null) {
+	    	  getDataForResult(intent);
+		}
+	     
+	     checkUpdate();
+	}
+
+	/**
+	  * @author Administrator
+	  * @åŠŸèƒ½:ç™¾åº¦æ›´æ–°
+	  */
+	private void checkUpdate() {
+		BDAutoUpdateSDK.uiUpdateAction(this, new UICheckUpdateCallback() {
+				@Override
+				public void onCheckComplete() {
+					
+				}
+			});
 	}
 
 	final int request_code_template=1;
@@ -81,7 +110,7 @@ public class MainActivity extends Activity {
 	
 	@OnClick(R.id.bt_send) void bt_send(){
 		if (TextUtils.isEmpty(ed_template.getText().toString())) {
-			CommonUtil.showToast(this, "¶ÌĞÅÄÚÈİÎª¿Õ£¡");
+			CommonUtil.showToast(this, "çŸ­ä¿¡å†…å®¹ä¸ºç©ºï¼");
 			return;
 		}
 		List<Contacts> contacts=getSelectedContacts();
@@ -90,16 +119,18 @@ public class MainActivity extends Activity {
 				for (int i = 0; i < contacts.size(); i++) {
 					Contacts eContacts=contacts.get(i);
 					String content=ed_template.getText().toString().replace(
-							"@êÇ³Æ", !TextUtils.isEmpty(eContacts.getNickname())
+							"@æ˜µç§°", 
+							!TextUtils.isEmpty(eContacts.getNickname())
 							?eContacts.getNickname():eContacts.getName());
 					sendASMS(eContacts.getName(), eContacts.getPhone(), content);
 				}
+				//bt_send.setEnabled(false);
 			}
 			else{
-				CommonUtil.showToast(this, "ÇëÖ¸¶¨ÁªÏµÈË£¡");
+				CommonUtil.showToast(this, "è¯·æŒ‡å®šè”ç³»äººï¼");
 			}
 		}else{
-			CommonUtil.showToast(this, "ÇëÖ¸¶¨ÁªÏµÈË");
+			CommonUtil.showToast(this, "è¯·æŒ‡å®šè”ç³»äºº");
 		}
 	}
 	
@@ -109,11 +140,15 @@ public class MainActivity extends Activity {
 	
 	
 	@OnClick(R.id.fab) void bt_scan(){
-		if (!TextUtils.isEmpty(ed_template.getText().toString())) {
+          if (!TextUtils.isEmpty(ed_template.getText().toString())) {
 			
 			List<Contacts> isSelected = getSelectedContacts();
+			if (isSelected==null) {
+				CommonUtil.showToast(this, "è¯·é€‰æ‹©è”ç³»äººï¼");
+				return;
+			}
 			if (isSelected.isEmpty()) {
-				CommonUtil.showToast(this, "ÇëÑ¡ÔñÁªÏµÈË£¡");
+				CommonUtil.showToast(this, "è¯·é€‰æ‹©è”ç³»äººï¼");
 				return;
 			}
 			Intent intent=new Intent(this,CustomTempletActivity.class);
@@ -122,17 +157,19 @@ public class MainActivity extends Activity {
 			intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) isSelected);
 			CommonUtil.startActivity(this,intent);
 		}else{
-			CommonUtil.showToast(this, "·¢ËÍµÄÄÚÈİÎª¿Õ,ÎŞ·¨Ô¤ÀÀ£¡");
+			CommonUtil.showToast(this, "å‘é€çš„å†…å®¹ä¸ºç©º,æ— æ³•é¢„è§ˆï¼");
 		}
 	}
 
 	private List<Contacts> getSelectedContacts() {
 		List<Contacts> isSelected=new ArrayList<Contacts>();
+		if (mContacts!=null) {
 		for (int i = 0; i <mContacts.size(); i++) {
 			Contacts eContacts=mContacts.get(i);
 			if (eContacts.ischecked) {
 				isSelected.add(eContacts);
 			}
+		}
 		}
 		return isSelected;
 	}
@@ -146,55 +183,58 @@ public class MainActivity extends Activity {
 				String template=data.getStringExtra("template");
 				Log.i("request_code", template);
 				//CommonUtil.showToast(this, template);
-				CommonUtil.insertSpanForTextView(ed_template, template, "@êÇ³Æ");
+				CommonUtil.insertSpanForTextView(ed_template, template, "@æ˜µç§°");
 				if (template.length()%67>0) {
 					int num=template.length()/67+1;
-					CommonUtil.showToast(this, "Çë×¢Òâ£º¶ÌĞÅ½«²ğ·Ö"+num+"Ìõ");
+					CommonUtil.showToast(this, "è¯·æ³¨æ„ï¼šçŸ­ä¿¡å°†æ‹†åˆ†"+num+"æ¡");
 				}else{
 					int num=template.length()/67==0?1:template.length()/67;
-					CommonUtil.showToast(this, "Çë×¢Òâ£º¶ÌĞÅ½«²ğ·Ö"+num+"Ìõ");
+					CommonUtil.showToast(this, "è¯·æ³¨æ„ï¼šçŸ­ä¿¡å°†æ‹†åˆ†"+num+"æ¡");
 				}
 			}
 			break;
 		case request_code_multiselect:
-			if (data==null) {
-				return ;
-			}
-		   mContacts=data.getParcelableArrayListExtra("Contacts");
-		   if (!mContacts.isEmpty()) {
-			   StringBuffer sb=new StringBuffer();
-				int num = 0;
-			   for (int i = 0; i <mContacts.size(); i++) {
-					if (mContacts.get(i).ischecked) {
-						Log.i("ischecked", mContacts.get(i).getName());
-						sb.append(mContacts.get(i).getName()+",");
-						num++;
-					}
-				}
-			   
-			   if (num!=0) {
-				   String content=  (String) sb.subSequence(0, sb.length()-1);
-				   content= content+"   "+num+"ÈË";
-				   CommonUtil.insertSpanForTextView(ed_content, content, String.valueOf(num));
-			    }else{
-			       ed_content.setText("");
-			    }
-			 
-			   //ed_content.setText(content);
-		     }
-			
+			getDataForResult(data);
 		   break;
 		default:
 			break;
 		}
 		super.onActivityResult(requestCode, resultCode, data);
 	}
+
+	private void getDataForResult(Intent data) {
+		if (data==null) {
+			return ;
+		}
+       mContacts=data.getParcelableArrayListExtra("Contacts");
+       if (mContacts==null) {
+		return;
+	   }
+      if (!mContacts.isEmpty()) {
+		   StringBuffer sb=new StringBuffer();
+			int num = 0;
+		   for (int i = 0; i <mContacts.size(); i++) {
+				if (mContacts.get(i).ischecked) {
+					//Log.i("ischecked", mContacts.get(i).getName());
+					sb.append(mContacts.get(i).getName()+",");
+					num++;
+				}
+			}
+		   if (num!=0) {
+			   String content=  (String) sb.subSequence(0, sb.length()-1);
+			   content= content+"   "+num+"äºº";
+			   CommonUtil.insertSpanForTextView(ed_content, content, String.valueOf(num));
+		    }else{
+		       ed_content.setText("");
+		    }
+		 }
+	}
 	
 	String SENT_SMS_ACTION="SENT_SMS_ACTION";  
     String DELIVERED_SMS_ACTION="DELIVERED_SMS_ACTION";  
 	
 	private void sendASMS(String name,String number, String message){
-		   Log.i("ASMS", "\nĞÕÃû£º"+name+"ºÅÂë£º"+number+"\nÕıÎÄ£º"+message);
+		   Log.i("ASMS", "\nå§“åï¼š"+name+"å·ç ï¼š"+number+"\næ­£æ–‡ï¼š"+message);
 //		   String SENT = "sms_sent";
 //		   String DELIVERED = "sms_delivered";
 		   Intent sendIntent=new Intent(SENT_SMS_ACTION);
@@ -207,84 +247,81 @@ public class MainActivity extends Activity {
 		   PendingIntent sentPI = PendingIntent.getBroadcast(this, 0, sendIntent, 0);
 		   PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0, deliverIntent, 0);
 		   registerReceiver(new BroadcastReceiver(){
-		      @Override
-		      public void onReceive(Context context, Intent intent) {
-		        switch(getResultCode())
-		        {
-		           case Activity.RESULT_OK:
-		             Log.i("====>", "Activity.RESULT_OK");
-		             String phoneNumber=intent.getStringExtra("number");
-		             String name=intent.getStringExtra("name");
-		             CommonUtil.showToast(context, "¶ÌĞÅ¸ø£º"+name+" ["+phoneNumber+"] ÒÑ·¢ËÍ£¡");
-		             break;
-		           case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-		             Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
-		             break;
-		           case SmsManager.RESULT_ERROR_NO_SERVICE:
-		             Log.i("====>", "RESULT_ERROR_NO_SERVICE");
-		             break;
-		           case SmsManager.RESULT_ERROR_NULL_PDU:
-		             Log.i("====>", "RESULT_ERROR_NULL_PDU");
-		             break;
-		           case SmsManager.RESULT_ERROR_RADIO_OFF:
-		             Log.i("====>", "RESULT_ERROR_RADIO_OFF");
-		             break;
-		             default:
-		              name=intent.getStringExtra("name");
-		             CommonUtil.showToast(context, "·¢ËÍµ½"+name+"Ê§°Ü");
-		             break;
-		        }
-		     }
-		   }, new IntentFilter(SENT_SMS_ACTION));
-		   registerReceiver(new BroadcastReceiver(){
-		     @Override
-		     public void onReceive(Context context, Intent intent){
-		       switch(getResultCode())
-		       {
-		         case Activity.RESULT_OK:
-		           Log.i("====>", "RESULT_OK");
-		             String phoneNumber=intent.getStringExtra("number");
-		             String name=intent.getStringExtra("name");
-		             CommonUtil.showToast(context, "¶ÌĞÅ¸ø£º"+name+" ["+phoneNumber+"] ÒÑËÍ´ï£¡");
-		           break;
-		         case Activity.RESULT_CANCELED:
-		           Log.i("=====>", "RESULT_CANCELED");
-		            phoneNumber=intent.getStringExtra("number");
-		            name=intent.getStringExtra("name");
-		           CommonUtil.showToast(context, name+"½ÓÊÕ¶ÌĞÅÊ§°Ü£¡");
-		           break;
-		       }
-		     }
-		   }, new IntentFilter(DELIVERED_SMS_ACTION));
+			      @Override
+			      public void onReceive(Context context, Intent intent) {
+			        switch(getResultCode())
+			        {
+			           case Activity.RESULT_OK:
+			             Log.i("====>", "Activity.RESULT_OK");
+			             String phoneNumber=intent.getStringExtra("number");
+			             String name=intent.getStringExtra("name");
+			             CommonUtil.showToast(context, "çŸ­ä¿¡ç»™ï¼š"+name+" ["+phoneNumber+"] å·²å‘é€ï¼");
+			             break;
+			           case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+			             Log.i("====>", "RESULT_ERROR_GENERIC_FAILURE");
+			             break;
+			           case SmsManager.RESULT_ERROR_NO_SERVICE:
+			             Log.i("====>", "RESULT_ERROR_NO_SERVICE");
+			             break;
+			           case SmsManager.RESULT_ERROR_NULL_PDU:
+			             Log.i("====>", "RESULT_ERROR_NULL_PDU");
+			             break;
+			           case SmsManager.RESULT_ERROR_RADIO_OFF:
+			             Log.i("====>", "RESULT_ERROR_RADIO_OFF");
+			             break;
+			             default:
+			              name=intent.getStringExtra("name");
+			             CommonUtil.showToast(context, "å‘é€åˆ°"+name+"å¤±è´¥");
+			             break;
+			        }
+			     }
+			   }, new IntentFilter(SENT_SMS_ACTION));
+			   registerReceiver(new BroadcastReceiver(){
+			     @Override
+			     public void onReceive(Context context, Intent intent){
+			       switch(getResultCode())
+			       {
+			         case Activity.RESULT_OK:
+			           Log.i("====>", "RESULT_OK");
+			             String phoneNumber=intent.getStringExtra("number");
+			             String name=intent.getStringExtra("name");
+			             CommonUtil.showToast(context, "çŸ­ä¿¡ç»™ï¼š"+name+" ["+phoneNumber+"] å·²é€è¾¾ï¼");
+			           break;
+			         case Activity.RESULT_CANCELED:
+			           Log.i("=====>", "RESULT_CANCELED");
+			            phoneNumber=intent.getStringExtra("number");
+			            name=intent.getStringExtra("name");
+			           CommonUtil.showToast(context, name+"æ¥æ”¶çŸ­ä¿¡å¤±è´¥ï¼");
+			           break;
+			       }
+			     }
+			   }, new IntentFilter(DELIVERED_SMS_ACTION));
 		   SmsManager smsm = SmsManager.getDefault();
 		   List<String> divideContents = smsm.divideMessage(message);
 	        for (String text : divideContents) {
 	        	Log.i("ASMS", text);
 	        	smsm.sendTextMessage(number, null, text, sentPI, deliveredPI);
-	        	saveSMS(number, text);//±£´æ¶ÌĞÅÊı¾İ
+	        	saveSMS(number, text);
 	        }
-		  // smsm.sendTextMessage(number, null, message, sentPI, deliveredPI);
-		  // saveSMS(number, message);//±£´æ¶ÌĞÅÊı¾İ
 		}
 	
 	
 	public void saveSMS(String number,String text){
-        /**½«·¢ËÍµÄ¶ÌĞÅ²åÈëÊı¾İ¿â**/
+		 /**å°†å‘é€çš„çŸ­ä¿¡æ’å…¥æ•°æ®åº“**/
         ContentValues values = new ContentValues();
-        //·¢ËÍÊ±¼ä
+        //å‘é€æ—¶é—´
         values.put("date", System.currentTimeMillis());
-        //ÔÄ¶Á×´Ì¬                0 ±íÊ¾Î´¶Á 1±íÊ¾ÒÑ¶Á
+        //é˜…è¯»çŠ¶æ€                0 è¡¨ç¤ºæœªè¯» 1è¡¨ç¤ºå·²è¯»
         values.put("read", 1);
-        //1ÎªÊÕ 2Îª·¢             1±íÊ¾½ÓÊÕ 2 ±íÊ¾·¢³ö
+        //1ä¸ºæ”¶ 2ä¸ºå‘             1è¡¨ç¤ºæ¥æ”¶ 2 è¡¨ç¤ºå‘å‡º
         values.put("type", 2);
-        //ËÍ´ïºÅÂë
+        //é€è¾¾å·ç 
         values.put("address", number);
-        //ËÍ´ïÄÚÈİ
+        //é€è¾¾å†…å®¹
         values.put("body", text);
-        //²åÈë¶ÌĞÅ¿â
+        //æ’å…¥çŸ­ä¿¡åº“
 
         getContentResolver().insert(Uri.parse("content://sms"),values);
-
     }
 	
 	@Override
@@ -300,5 +337,17 @@ public class MainActivity extends Activity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK) { 
+			
+			return mDoubleClickExitHelper.onKeyDown(keyCode, event);
+		}
+		if (keyCode == KeyEvent.KEYCODE_MENU) {
+			super.openOptionsMenu(); 
+		}
+		return false;
 	}
 }

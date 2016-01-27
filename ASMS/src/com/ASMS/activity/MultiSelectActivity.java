@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.ASMS.activity.MultiSelectActivity.SimpleAdapter.ViewModel;
+import com.ASMS.app.AppApplication;
 import com.ASMS.entity.Contacts;
 import com.ASMS.util.CommonUtil;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.ThemeSingleton;
 import com.afollestad.materialdialogs.internal.MDTintHelper;
+import com.github.clans.fab.FloatingActionButton;
 
 import android.app.Activity;
 import android.app.Service;
@@ -29,6 +31,7 @@ import android.os.RemoteException;
 import android.os.Vibrator;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Nickname;
+import android.support.v7.internal.widget.ViewUtils;
 import android.provider.ContactsContract.Data;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -36,18 +39,14 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -64,7 +63,7 @@ public class MultiSelectActivity extends Activity {
 	@Bind(R.id.tv_title) TextView tv_title;
 	@Bind(R.id.tv_right) TextView  tv_right;
 	@Bind(R.id.lv_multiselect) ListView lv_multiselect;
-	
+	@Bind(R.id.fab) FloatingActionButton fb_scan;
 	Context ct;
 	SimpleAdapter adapter;
 	List<Contacts> mContacts;
@@ -89,30 +88,48 @@ public class MultiSelectActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_multiselect);
 		ButterKnife.bind(this);
+		AppApplication.getInstance().addActivity(this);
 		ct=this;
 		initView();
-		//initData();
 	}
 	
 	private void initView() {
          tv_right.setText("确定");
          tv_right.setVisibility(View.VISIBLE);
          tv_title.setText("请选择项目");
+         
+         fb_scan.hide(false);
+	     new Handler().postDelayed(new Runnable() {
+	            @Override
+	            public void run() {
+	            	fb_scan.show(true);
+	            	fb_scan.setShowAnimation(AnimationUtils.loadAnimation(ct, R.anim.show_from_bottom));
+	            	fb_scan.setHideAnimation(AnimationUtils.loadAnimation(ct, R.anim.hide_to_bottom));
+	            }
+	     }, 800);
 	}
-	
+	long groupId=0;
 	private void initData() {
-		Message message=new Message();
-		message.what=1;
-		mhandle.sendMessageDelayed(message, 1000);
-	/*	runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				mContacts=getContacts();
-				adapter=new SimpleAdapter(ct, mContacts);
-				lv_multiselect.setAdapter(adapter);
-				lv_multiselect.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-			}
-		});*/
+		Intent intent=getIntent();
+	  
+		if (intent!=null) {
+			groupId=intent.getLongExtra("groupId", 0);
+		}
+		if (groupId!=0) {
+			new Handler().postDelayed(new Runnable() {
+				
+				@Override
+				public void run() {
+					mContacts=getAllContactsByGroupId(groupId);
+					adapter=new SimpleAdapter(ct, mContacts);
+					lv_multiselect.setAdapter(adapter);
+				}
+			}, 1000);
+		}else{
+			Message message=new Message();
+			message.what=1;
+			mhandle.sendMessageDelayed(message, 800);
+		}
 	}
 	
 	
@@ -122,28 +139,58 @@ public class MultiSelectActivity extends Activity {
 		initData();
 	}
 	
+	@OnClick(R.id.fab) void bt_allSelect(){
+		for (int i = 0; i < mContacts.size(); i++) {
+			if (mContacts.get(i).ischecked==true) {
+				mContacts.get(i).setIschecked(false);
+				checkNum--;
+			}else{
+				if (mContacts.get(i).getPhones().size()==0) {
+					CommonUtil.showToast(ct, mContacts.get(i).getName()+"：手机号码为空,不能选择！");
+				}else{
+					mContacts.get(i).setIschecked(true);
+					checkNum++;
+				}
+			}
+		}
+		 CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
+		if (adapter!=null) {
+			adapter.notifyDataSetChanged();
+		}
+	}
+	
 	
 	@OnClick(R.id.tv_right) void bt_commit(){
+		if (groupId!=0) {
+			Intent intent=new Intent(this,MainActivity.class);
+			intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
+			CommonUtil.startActivity(this, intent);
+			return;
+		}
 		CommonUtil.showToast(ct, "选中："+checkNum+"");
-		Intent intent=new Intent();
+		Intent intent=new Intent(this,MainActivity.class);
 		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
 		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
-		
 	}
 	
 	@OnClick(R.id.tv_back) void bt_back(){
+		if (groupId!=0) {
+			Intent intent=new Intent(this,MainActivity.class);
+			intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
+			CommonUtil.startActivity(this, intent);
+			return;
+		}
 		CommonUtil.showToast(ct, "选中："+checkNum+"");
 		Intent intent=new Intent();
 		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
 		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
-		
 	}
 	
 	
 	@Override
 	public void onBackPressed() {
 		//super.onBackPressed();
-		Intent intent=new Intent();
+		Intent intent=new Intent(this,MainActivity.class);
 		intent.putParcelableArrayListExtra("Contacts", (ArrayList<? extends Parcelable>) mContacts);
 		CommonUtil.setResult(this,intent,RESULT_FIRST_USER);
 	}
@@ -160,6 +207,12 @@ public class MultiSelectActivity extends Activity {
 	            CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
 	            return;
 	        }
+		 if (phones.size()==0) {
+	         CommonUtil.showToast(ct, "没有手机号码!无法选择该联系人发送短信！");
+		 }
+		 if (TextUtils.isEmpty(mContacts.get(position).getName())) {
+	         CommonUtil.showToast(ct, "联系人名字为空！");
+		 }
 		if (phones.size()==1) {
 		        	if(model.selected.isChecked() == false) {
 		           // adapter.getIsSelected().put(position, true);
@@ -171,8 +224,9 @@ public class MultiSelectActivity extends Activity {
 			 CommonUtil.insertSpanForTextView(tv_title, "已选择"+checkNum+"位联系人", String.valueOf(checkNum));
 			return;
 		}
-	    final String[] phone_items = (String[])phones.toArray(new String[phones.size()]);
-	    MaterialDialog dialog=new MaterialDialog.Builder(ct) 
+		if (phones.size()>1) {
+	     final String[] phone_items = (String[])phones.toArray(new String[phones.size()]);
+	     MaterialDialog dialog=new MaterialDialog.Builder(ct) 
 				.title("选择号码")
 				.items(phone_items)
 				.itemsCallback(new MaterialDialog.ListCallback() {
@@ -197,6 +251,7 @@ public class MultiSelectActivity extends Activity {
 					}
 				}).build();
 		dialog.show();	
+		}
 		 
 	}
 	
@@ -230,10 +285,14 @@ public class MultiSelectActivity extends Activity {
 										public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
 										 String phone_selected = phone_items[which];
 										 model.phone.setText(phone_selected);
+										 mContacts.get(position).setPhone(phone_selected);
 										 dialog.dismiss();
 										}
 									}).build();
 							dialog.show();	
+							break;
+						case 2:
+							CommonUtil.startActivity(ct, GroupContactsActivity.class);
 							break;
 						default:
 							break;
@@ -265,9 +324,7 @@ public class MultiSelectActivity extends Activity {
 		   StringBuilder sb = new StringBuilder();  
 		   sb.append("id=" + id);  
 		   //查询联系人表中的  
-		  
 		  // getContactsPhones(idCursor, contact, idCursor.getString(id));
-		   
 		   while (dataCursor.moveToNext()) { 
 			   Log.i("rawid","-------------\n");
 		       String data = dataCursor.getString(0);  
@@ -289,16 +346,72 @@ public class MultiSelectActivity extends Activity {
 		    	   Log.i("rawid", data+"");
 		    	   Log.i("rawid", rawid+"");
 		       }
-		      
 		   }  
 		   contacts.add(contact);
 		   dataCursor.close();
 		}  
 		 idCursor.close();
-		   
 		return contacts;
 	}
 	
+	
+	
+	/**
+	 * 获取某个分组下的 所有联系人信息
+	 * 思路：通过组的id 去查询 RAW_CONTACT c_ID, 通过RAW_CONTACT_ID去查询联系人
+		要查询得到 data表的Data.RAW_CONTACT_ID字段
+	 * @param groupId
+	 * @return
+	 */
+	public List<Contacts> getAllContactsByGroupId(long groupId) {
+		String[] RAW_PROJECTION = new String[] { ContactsContract.Data.RAW_CONTACT_ID, };
+		String RAW_CONTACTS_WHERE = ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID
+				+ "=?"
+				+ " and "
+				+ ContactsContract.Data.MIMETYPE
+				+ "="
+				+ "'"
+				+ ContactsContract.CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE
+				+ "'";
+		// 通过分组的id 查询得到RAW_CONTACT_ID
+		Cursor cursor =getContentResolver().query(
+				ContactsContract.Data.CONTENT_URI, RAW_PROJECTION,
+				RAW_CONTACTS_WHERE, new String[] { groupId + "" }, "data1 asc");
+		List<Contacts> contactList = new ArrayList<Contacts>();
+		while (cursor.moveToNext()) {
+			// RAW_CONTACT_ID
+			int col = cursor.getColumnIndex("raw_contact_id");
+			int raw_contact_id = cursor.getInt(col);
+			// Log.i("getAllContactsByGroupId", "raw_contact_id:" +
+			// raw_contact_id);
+			Contacts ce = new Contacts();
+			ce.setRawid(raw_contact_id);
+
+			Uri dataUri = Uri.parse("content://com.android.contacts/data");
+			Cursor dataCursor = getContentResolver().query(dataUri,
+					null, "raw_contact_id=?",
+					new String[] { raw_contact_id + "" }, null);
+
+			while (dataCursor.moveToNext()) {
+				String data1 = dataCursor.getString(dataCursor
+						.getColumnIndex("data1"));
+				String mime = dataCursor.getString(dataCursor
+						.getColumnIndex("mimetype"));
+				if ("vnd.android.cursor.item/phone_v2".equals(mime)) {
+					ce.getPhones().add(data1);
+				} else if ("vnd.android.cursor.item/name".equals(mime)) {
+					ce.setName(data1);
+				}else if("vnd.android.cursor.item/nickname".equals(mime)){
+			    	   ce.setNickname(data1);
+			    }
+			}
+			dataCursor.close();
+			contactList.add(ce);
+			ce = null;
+		}
+		cursor.close();
+		return contactList;
+	}
 	
 	   /*
      * 自定义显示Contacts提供的联系人的方法
@@ -312,7 +425,6 @@ public class MultiSelectActivity extends Activity {
         Cursor cursor = contentResolver.query(Uri.parse("content://com.android.contacts/contacts"),null,null,null,null);
         try{
         if (cursor.moveToFirst()) {
-        	
             int idColumn = cursor.getColumnIndex(ContactsContract.Contacts._ID);
             int displayNameColumn = cursor
                     .getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
@@ -439,12 +551,13 @@ public class MultiSelectActivity extends Activity {
 			model.selected.setChecked(data.get(position).ischecked);
 			
 			if (!data.get(position).getPhones().isEmpty()) {
-				model.phoneCount.setText(data.get(position).getPhones().get(0));
 				model.phone.setText(data.get(position).getPhones().get(0));
 				CommonUtil.insertSpanForTextView(model.phoneCount, "共"+data.get(position).getPhones().size()+"个号码", 
 						String.valueOf(data.get(position).getPhones().size()));
 			}else{
 				model.phone.setText(data.get(position).getPhone());
+				CommonUtil.insertSpanForTextView(model.phoneCount, "共"+data.get(position).getPhones().size()+"个号码", 
+						String.valueOf(data.get(position).getPhones().size()));
 			}
 			//model.selected.setOnCheckedChangeListener(new MyCheckBoxChangedListener(position));
 			return view;
@@ -533,6 +646,7 @@ public class MultiSelectActivity extends Activity {
 							insertContactNickName(String.valueOf(contacts.getRawid()), content.getText().toString());
 						}
 						model.nickname.setText(content.getText().toString());
+						contacts.setNickname(content.getText().toString());
 						dialog.dismiss();
 					}
 					

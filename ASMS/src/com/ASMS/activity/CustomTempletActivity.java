@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.ASMS.activity.CustomTempletActivity.SimpleAdapter.ViewModel;
+import com.ASMS.app.AppApplication;
 import com.ASMS.entity.Contacts;
 import com.ASMS.util.CommonUtil;
 import com.afollestad.materialdialogs.DialogAction;
@@ -41,7 +42,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -77,12 +77,11 @@ public class CustomTempletActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_customtemplet);
 		ButterKnife.bind(this);
+		AppApplication.getInstance().addActivity(this);
 		ct=this;
 		tv_title.setText("添加常用语");
 		loadData();
 		initData();
-
-	
 	}
 	
 	
@@ -142,7 +141,6 @@ public class CustomTempletActivity extends Activity {
 	}
 	
 	@OnClick(R.id.iv_add) void iv_add() {
-//		Toast.makeText(this, "点击事件！", Toast.LENGTH_LONG).show();
 		showDialogTemplteInput(null,0);
 	}
 	
@@ -168,16 +166,15 @@ public class CustomTempletActivity extends Activity {
 					public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
 						switch (which) {
 						case 0:
-							
 							break;
 						case 1:
 							templates.remove(position);
 							saveTemplates(templates);
 							adapter.notifyDataSetChanged();
 							break;
-						case 2:
-					     String  content=templates.get(position);
-					     showDialogTemplteInput(content,position);		
+						case 2://修改
+					        String  content=templates.get(position);
+					        showDialogTemplteInput(content,position);		
 							break;
 						default:
 							break;
@@ -299,7 +296,7 @@ public class CustomTempletActivity extends Activity {
 						String input=content.getText().toString();
 						Log.i("input", input);
 						int fend=index+text.length();
-					    insertSpanForEditView(content,input,"@昵称");
+					    insertSpanForEditView(content,input+" ","@昵称");
 					    content.setSelection(fend);
 					}
 
@@ -316,6 +313,7 @@ public class CustomTempletActivity extends Activity {
 		}
 		
 		insertSpanForEditView(content,content.getText().toString(),"@昵称");
+		content.setSelection(content.length());
 		
 		positiveAction = dialog.getActionButton(DialogAction.POSITIVE);
 		neutralAction=dialog.getActionButton(DialogAction.NEUTRAL);
@@ -346,7 +344,7 @@ public class CustomTempletActivity extends Activity {
 		
         if (TextUtils.isEmpty(content.getText().toString())) {
         	positiveAction.setEnabled(false); // disabled by default
-        	neutralAction.setEnabled(false);
+        	//neutralAction.setEnabled(false);
 		}
         dialog.show();
 	}

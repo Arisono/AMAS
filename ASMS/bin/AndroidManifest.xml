@@ -3,7 +3,6 @@
     package="com.ASMS.activity"
     android:versionCode="1"
     android:versionName="1.0" >
-    
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />  
@@ -14,12 +13,25 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>  
      <!--写入消息-->
     <uses-permission android:name="android.permission.WRITE_SMS" />
+    <!-- 访问网络的权限 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+	<uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+	<uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+	<uses-permission android:name="android.permission.GET_TASKS"/>
+	<uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <!--百度自动更新与数据统计  -->
+	<uses-permission android:name="android.permission.WRITE_SETTINGS"/>
     
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="23" />
 
     <application
+        android:name="com.ASMS.app.AppApplication"
         android:allowBackup="true"
         android:icon="@drawable/app_logo"
         android:label="@string/app_name"
@@ -38,8 +50,60 @@
             android:name=".CustomTempletActivity">
         </activity>
          <activity
-            android:name=".MultiSelectActivity">
+            android:name=".MultiSelectActivity"
+            >
         </activity>
+          <activity
+            android:name=".GroupContactsActivity">
+        </activity>
+        
+          
+       <!-- 百度自动更新与数据统计 -->
+       <meta-data android:name="BDAPPID"
+             android:value="7722013"/>
+       <meta-data android:name="BDAPPKEY" 
+            android:value="U1o0gparM63tSlGad33TlIS6eokPAuYB"/>  
+       <!-- 百度自动更新SDK -->
+       <activity android:name="com.baidu.autoupdatesdk.ConfirmDialoigActivity"
+            android:screenOrientation="sensor"
+            android:exported="false"
+            android:theme="@style/bdp_update_dialog_style_fullscreen" />
+        <receiver android:name="com.baidu.autoupdatesdk.receiver.BDBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.baidu.autoupdatesdk.ACTION_NEW_UPDATE"/>
+                <action android:name="com.baidu.autoupdatesdk.ACTION_DOWNLOAD_COMPLETE"/>
+                <action android:name="com.baidu.autoupdatesdk.ACTION_NEW_AS"/>
+                <action android:name="com.baidu.autoupdatesdk.ACTION_AS_DOWNLOAD_COMPLETE"/>
+            </intent-filter>
+        </receiver> 
+       <!--百度数据统计 -->
+        <!-- 是否开启错误日志统计，默认为false -->
+        <meta-data
+            android:name="BaiduMobAd_EXCEPTION_LOG"
+            android:value="true" />
+        <!-- 日志发送策略，可选值：APP_START、ONCE_A_DAY、SET_TIME_INTERVAL，默认为APP_START -->
+        <meta-data
+            android:name="BaiduMobAd_SEND_STRATEGY"
+            android:value="APP_START" />
+        <!-- 日志发送策略 为SET_TIME_INTERVAL时，需设定时间间隔(需要时取消下行注释即可)。取值为1-24的整数，默认为1 -->
+        <!-- <meta-data android:name="BaiduMobAd_TIME_INTERVAL" android:value="2" /> -->
+        <!-- 日志仅在wifi网络下发送，默认为false -->
+        <meta-data
+            android:name="BaiduMobAd_ONLY_WIFI"
+            android:value="false" />
+        <!-- 是否获取基站位置信息 ,默认为true -->
+        <meta-data
+            android:name="BaiduMobAd_CELL_LOCATION"
+            android:value="true" />
+        <!-- 是否获取GPS位置信息，默认为true -->
+        <meta-data
+            android:name="BaiduMobAd_GPS_LOCATION"
+            android:value="true" />
+        <!-- 是否获取WIFI位置信息，默认为true -->
+        <meta-data
+            android:name="BaiduMobAd_WIFI_LOCATION"
+            android:value="true" />  
     </application>
      
 </manifest>

@@ -76,26 +76,26 @@ public final class R {
 		public static final int menu_showShadow = 0x7f010014;
 	}
 	public static final class dimen {
-		public static final int fab_size_mini = 0x7f050001;
-		public static final int fab_size_normal = 0x7f050000;
-		public static final int labels_text_size = 0x7f050002;
+		public static final int fab_size_mini = 0x7f070001;
+		public static final int fab_size_normal = 0x7f070000;
+		public static final int labels_text_size = 0x7f070002;
 	}
 	public static final class drawable {
-		public static final int fab_add = 0x7f020041;
+		public static final int fab_add = 0x7f020046;
 	}
 	public static final class id {
-		public static final int down = 0x7f060014;
-		public static final int end = 0x7f06000f;
-		public static final int fab_label = 0x7f060000;
-		public static final int left = 0x7f06000d;
-		public static final int marquee = 0x7f060010;
-		public static final int middle = 0x7f060011;
-		public static final int mini = 0x7f06000b;
-		public static final int none = 0x7f060012;
-		public static final int normal = 0x7f06000c;
-		public static final int right = 0x7f06000e;
-		public static final int start = 0x7f060013;
-		public static final int up = 0x7f060003;
+		public static final int down = 0x7f080014;
+		public static final int end = 0x7f08000f;
+		public static final int fab_label = 0x7f080000;
+		public static final int left = 0x7f08000d;
+		public static final int marquee = 0x7f080010;
+		public static final int middle = 0x7f080011;
+		public static final int mini = 0x7f08000b;
+		public static final int none = 0x7f080012;
+		public static final int normal = 0x7f08000c;
+		public static final int right = 0x7f08000e;
+		public static final int start = 0x7f080013;
+		public static final int up = 0x7f080003;
 	}
 	public static final class styleable {
 		public static final int[] FloatingActionButton = { 0x7f010000, 0x7f010001, 0x7f010002, 0x7f010003, 0x7f010004, 0x7f010005, 0x7f010006, 0x7f010007, 0x7f010008, 0x7f010009, 0x7f01000a, 0x7f01000b, 0x7f01000c, 0x7f01000d, 0x7f01000e, 0x7f01000f, 0x7f010010, 0x7f010011, 0x7f010012, 0x7f010013 };

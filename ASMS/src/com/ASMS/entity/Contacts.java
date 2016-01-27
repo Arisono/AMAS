@@ -13,7 +13,7 @@ import android.os.Parcelable;
 public class Contacts implements Parcelable {
 	public int id;
 	public int rawid;
-    public String name;//姓名
+    public String name="未填写";//姓名
     public String nickname;//昵称
     public String phone;
     public List<String> phones=new ArrayList<>();//多个手机人号码

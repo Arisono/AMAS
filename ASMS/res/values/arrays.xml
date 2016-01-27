@@ -9,5 +9,6 @@
       <string-array name="menus_multiSelect">
          <item>输入昵称</item>
          <item>选中号码</item>
+         <item>分组模式</item>
        </string-array> 
 </resources>
