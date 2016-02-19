@@ -312,35 +312,47 @@ public class MultiSelectActivity extends Activity {
 		List<Contacts> contacts=new ArrayList<Contacts>();
 		ContentResolver resolver = getContentResolver();  
 		Uri uri = Uri.parse("content://com.android.contacts/contacts");  
-		Cursor idCursor = resolver.query(uri,new String[]{android.provider.ContactsContract.Contacts._ID}, null, null, null);  
-		while (idCursor.moveToNext()) { 
+		Cursor idCursor = resolver.query(
+				ContactsContract.Contacts.CONTENT_URI,
+				new String[]{
+						android.provider.ContactsContract.Contacts._ID
+						},
+				null, null, null);  
+		while (idCursor.moveToNext()) { //空指针
 			Contacts contact=new Contacts();
 		   //获取到raw_contacts表中的id  
 		   int id = idCursor.getInt(0);   
+		   String idstr=idCursor.getString(idCursor.getColumnIndex(android.provider.ContactsContract.Contacts._ID));  
 		   contact.setId(id);
 		   //根据获取到的ID查询data表中的数据  
 		   uri = Uri.parse("content://com.android.contacts/contacts/" + id + "/data");  
-		   Cursor dataCursor = resolver.query(uri, new String[] { "data1", "mimetype" ,"raw_contact_id"}, null, null, null);  
+		   Cursor dataCursor = resolver.query(
+				   android.provider.ContactsContract.Data.CONTENT_URI, 
+				   new String[] {
+						   android.provider.ContactsContract.Data.DATA1, 
+						   android.provider.ContactsContract.Data.MIMETYPE,
+						   android.provider.ContactsContract.Data.RAW_CONTACT_ID}, 
+				   android.provider.ContactsContract.Data.CONTACT_ID+"="+idstr, 
+				   null, null);  
 		   StringBuilder sb = new StringBuilder();  
 		   sb.append("id=" + id);  
 		   //查询联系人表中的  
 		  // getContactsPhones(idCursor, contact, idCursor.getString(id));
 		   while (dataCursor.moveToNext()) { 
 			   Log.i("rawid","-------------\n");
-		       String data = dataCursor.getString(0);  
-		       String type = dataCursor.getString(1); 
+		       String data = dataCursor.getString(dataCursor.getColumnIndex(android.provider.ContactsContract.Data.DATA1));  
+		       String mimetype = dataCursor.getString(  
+		    		   dataCursor.getColumnIndex(android.provider.ContactsContract.Data.MIMETYPE)); 
 		       int rawid=dataCursor.getInt(2);
 		       contact.setRawid(rawid);
 		       Log.i("rawid","某联系人下："+rawid+"");
-		       if ("vnd.android.cursor.item/name".equals(type))  
+		       if (mimetype.contains("/name"))  //vnd.android.cursor.item/name
 		          // sb.append(", name=" + data);  
 		            contact.setName(data);
-		       else if ("vnd.android.cursor.item/phone_v2".equals(type))  
-		           //sb.append(", phone=" + data);  
+		       else if (mimetype.contains("/phone_v2"))  
+		           //sb.append(", phone=" + data);  nickname
 		    	   contact.getPhones().add(data);
-		       else if ("vnd.android.cursor.item/email_v2".equals(type))  
-		           sb.append(", email=" + data);
-		       else if("vnd.android.cursor.item/nickname".equals(type))
+		       else if(mimetype.contains("/nickname"))
 		       {
 		    	   contact.setNickname(data);
 		    	   Log.i("rawid", data+"");

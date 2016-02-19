@@ -38,6 +38,8 @@ import butterknife.OnClick;
 
 public class MainActivity extends Activity {
 
+	
+	private boolean sendenable=true;
 	@Bind(R.id.bt_template) ImageButton bt_template;
 	@Bind(R.id.bt_person) ImageButton bt_person;
 	@Bind(R.id.bt_delete) ImageButton bt_delete;
@@ -116,13 +118,18 @@ public class MainActivity extends Activity {
 		List<Contacts> contacts=getSelectedContacts();
 		if (contacts!=null) {
 			if (!contacts.isEmpty()) {
-				for (int i = 0; i < contacts.size(); i++) {
-					Contacts eContacts=contacts.get(i);
-					String content=ed_template.getText().toString().replace(
-							"@昵称", 
-							!TextUtils.isEmpty(eContacts.getNickname())
-							?eContacts.getNickname():eContacts.getName());
-					sendASMS(eContacts.getName(), eContacts.getPhone(), content);
+				if (sendenable) {
+					for (int i = 0; i < contacts.size(); i++) {
+						Contacts eContacts=contacts.get(i);
+						String content=ed_template.getText().toString().replace(
+								"@昵称", 
+								!TextUtils.isEmpty(eContacts.getNickname())
+								?eContacts.getNickname():eContacts.getName());
+						    sendenable=false;
+							sendASMS(eContacts.getName(), eContacts.getPhone(), content);
+					}
+				}else{
+					CommonUtil.showToast(this, "短信已发送，请耐心等待...");
 				}
 				//bt_send.setEnabled(false);
 			}
@@ -253,6 +260,7 @@ public class MainActivity extends Activity {
 			        {
 			           case Activity.RESULT_OK:
 			             Log.i("====>", "Activity.RESULT_OK");
+			            
 			             String phoneNumber=intent.getStringExtra("number");
 			             String name=intent.getStringExtra("name");
 			             CommonUtil.showToast(context, "短信给："+name+" ["+phoneNumber+"] 已发送！");
@@ -286,7 +294,14 @@ public class MainActivity extends Activity {
 			             String phoneNumber=intent.getStringExtra("number");
 			             String name=intent.getStringExtra("name");
 			             CommonUtil.showToast(context, "短信给："+name+" ["+phoneNumber+"] 已送达！");
-			           break;
+			             new Handler().postDelayed(new Runnable() {
+							
+							@Override
+							public void run() {
+								 sendenable=true;
+							}
+						}, 3000);
+			             break;
 			         case Activity.RESULT_CANCELED:
 			           Log.i("=====>", "RESULT_CANCELED");
 			            phoneNumber=intent.getStringExtra("number");
@@ -298,6 +313,7 @@ public class MainActivity extends Activity {
 			   }, new IntentFilter(DELIVERED_SMS_ACTION));
 		   SmsManager smsm = SmsManager.getDefault();
 		   List<String> divideContents = smsm.divideMessage(message);
+		   
 	        for (String text : divideContents) {
 	        	Log.i("ASMS", text);
 	        	smsm.sendTextMessage(number, null, text, sentPI, deliveredPI);
